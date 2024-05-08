@@ -1,0 +1,511 @@
+#################################################################################
+#Set up ArchR project
+
+#Load packages and start R (for up to peak calling)
+module load biology
+module load viz
+module load py-matplotlib/2.2.2_py27
+module load py-numpy/1.14.3_py27
+module load py-scipy/1.1.0_py27
+module load py-pandas/0.23.0_py27 
+module load py-sympy/1.1.1_py27
+module load py-macs2
+module load gcc/10.1.0
+module load R/3.6.1
+R
+
+#In R/3.6.1
+setwd("/oak/stanford/groups/howchang/users/seankw/RPE/")
+scRNA <- readRDS("Seurat/postHarmony/allRPE1-16_postUMAP")
+col <- readRDS("Seurat/postHarmony/allRPE1-16_cellList")
+
+library(ArchR)
+addArchRGenome("hg38")
+
+#Create ArchR project using arrow files made during scRNA processing
+setwd("/oak/stanford/groups/howchang/users/seankw/RPE/ArchR/")
+ArrowFiles <- c("LGS1ODrpe_wd/LGS1ODrpe.arrow", "LGS1OSrpe_wd/LGS1OSrpe.arrow", "LGS2OSrpe_wd/LGS2OSrpe.arrow", "LGS3ODrpe_wd/LGS3ODrpe.arrow", "LGS3OSrpe_wd/LGS3OSrpe.arrow", "LGS4ODrpe_wd/LGS4ODrpe.arrow", "LGS4OSrpe_wd/LGS4OSrpe.arrow", "LGS5OS2rpe_wd/LGS5OS2rpe.arrow", "LVG1ODrpe_wd/LVG1ODrpe.arrow", "LVG1OSrpe_wd/LVG1OSrpe.arrow", "LGS6ODrpe_wd/LGS6ODrpe.arrow", "LGS7ODrpe_wd/LGS7ODrpe.arrow", "LGS7OSrpe_wd/LGS7OSrpe.arrow", "LGS6OD2rpe_wd/LGS6OD2rpe.arrow", "LGS8OSrpe_wd/LGS8OSrpe.arrow", "LGS8OS2rpe_wd/LGS8OS2rpe.arrow")
+
+proj <- ArchRProject(ArrowFiles, copyArrows = FALSE)
+
+#Isolate cells used in Seurat
+proj <- subsetCells(ArchRProj = proj, cellNames = col)
+
+#Integrate gene expression data
+seRNA1 <- import10xFeatureMatrix(   #Repeat for each sample
+    input = c("/oak/stanford/groups/howchang/users/seankw/RPE/cellranger/LGS1ODrpe/outs/filtered_feature_bc_matrix.h5"),
+    names = c("LGS1ODrpe")
+)
+seRNA2 <- import10xFeatureMatrix(   #Repeat for each sample
+    input = c("/oak/stanford/groups/howchang/users/seankw/RPE/cellranger/LGS1OSrpe/outs/filtered_feature_bc_matrix.h5"),
+    names = c("LGS1OSrpe")
+)
+seRNA3 <- import10xFeatureMatrix(   #Repeat for each sample
+    input = c("/oak/stanford/groups/howchang/users/seankw/RPE/cellranger/LGS2OSrpe/outs/filtered_feature_bc_matrix.h5"),
+    names = c("LGS2OSrpe")
+)
+seRNA4 <- import10xFeatureMatrix(   #Repeat for each sample
+    input = c("/oak/stanford/groups/howchang/users/seankw/RPE/cellranger/LGS3ODrpe/outs/filtered_feature_bc_matrix.h5"),
+    names = c("LGS3ODrpe")
+)
+seRNA5 <- import10xFeatureMatrix(   #Repeat for each sample
+    input = c("/oak/stanford/groups/howchang/users/seankw/RPE/cellranger/LGS3OSrpe/outs/filtered_feature_bc_matrix.h5"),
+    names = c("LGS3OSrpe")
+)
+seRNA6 <- import10xFeatureMatrix(   #Repeat for each sample
+    input = c("/oak/stanford/groups/howchang/users/seankw/RPE/cellranger/LGS4ODrpe/outs/filtered_feature_bc_matrix.h5"),
+    names = c("LGS4ODrpe")
+)
+seRNA7 <- import10xFeatureMatrix(   #Repeat for each sample
+    input = c("/oak/stanford/groups/howchang/users/seankw/RPE/cellranger/LGS4OSrpe/outs/filtered_feature_bc_matrix.h5"),
+    names = c("LGS4OSrpe")
+)
+seRNA8 <- import10xFeatureMatrix(   #Repeat for each sample
+    input = c("/oak/stanford/groups/howchang/users/seankw/RPE/cellranger/LGS5OS2rpe/outs/filtered_feature_bc_matrix.h5"),
+    names = c("LGS5OS2rpe")
+)
+seRNA9 <- import10xFeatureMatrix(   #Repeat for each sample
+    input = c("/oak/stanford/groups/howchang/users/seankw/RPE/cellranger/LVG1ODrpe/outs/filtered_feature_bc_matrix.h5"),
+    names = c("LVG1ODrpe")
+)
+seRNA10 <- import10xFeatureMatrix(   #Repeat for each sample
+    input = c("/oak/stanford/groups/howchang/users/seankw/RPE/cellranger/LVG1OSrpe/outs/filtered_feature_bc_matrix.h5"),
+    names = c("LVG1OSrpe")
+)
+seRNA11 <- import10xFeatureMatrix(   #Repeat for each sample
+    input = c("/oak/stanford/groups/howchang/users/seankw/RPE/cellranger/LGS6ODrpe/outs/filtered_feature_bc_matrix.h5"),
+    names = c("LGS6ODrpe")
+)
+seRNA12 <- import10xFeatureMatrix(   #Repeat for each sample
+    input = c("/oak/stanford/groups/howchang/users/seankw/RPE/cellranger/LGS7ODrpe/outs/filtered_feature_bc_matrix.h5"),
+    names = c("LGS7ODrpe")
+)
+seRNA13 <- import10xFeatureMatrix(   #Repeat for each sample
+    input = c("/oak/stanford/groups/howchang/users/seankw/RPE/cellranger/LGS7OSrpe/outs/filtered_feature_bc_matrix.h5"),
+    names = c("LGS7OSrpe")
+)
+seRNA14 <- import10xFeatureMatrix(   #Repeat for each sample
+    input = c("/oak/stanford/groups/howchang/users/seankw/RPE/cellranger/LGS6OD2rpe/outs/filtered_feature_bc_matrix.h5"),
+    names = c("LGS6OD2rpe")
+)
+seRNA15 <- import10xFeatureMatrix(   #Repeat for each sample
+    input = c("/oak/stanford/groups/howchang/users/seankw/RPE/cellranger/LGS8OSrpe/outs/filtered_feature_bc_matrix.h5"),
+    names = c("LGS8OSrpe")
+)
+seRNA16 <- import10xFeatureMatrix(   #Repeat for each sample
+    input = c("/oak/stanford/groups/howchang/users/seankw/RPE/cellranger/LGS8OS2rpe/outs/filtered_feature_bc_matrix.h5"),
+    names = c("LGS8OS2rpe")
+)
+
+seRNA <- cbind(seRNA1, seRNA2, seRNA3, seRNA4, seRNA5, seRNA6, seRNA7, seRNA8, seRNA9, seRNA10, seRNA11, seRNA12, seRNA13, seRNA14, seRNA15, seRNA16)
+saveRDS(seRNA, "allRPE1-16_seRNA")
+
+proj <- addGeneExpressionMatrix(
+  input = proj,
+  seRNA = seRNA,
+  chromSizes = getChromSizes(proj),
+  excludeChr = c("chrM", "chrY"),
+  scaleTo = 10000,
+  verbose = TRUE,
+  threads = getArchRThreads(),
+  parallelParam = NULL,
+  force = FALSE,
+  logFile = createLogFile("addGeneExpressionMatrix")
+)
+
+#Transfer cluster, cell type, and disease condition annotations 
+cluster <- as.character(scRNA$seurat_clusters)
+celltype <- as.character(scRNA@active.ident)
+condition <- as.character(scRNA$condition)
+proj$cluster <- cluster
+proj$celltype <- celltype
+proj$condition <- condition
+
+#Clean up environment
+ls()
+rm(scRNA, col, cluster, celltype, condition, seRNA1, seRNA2, seRNA3, seRNA4, seRNA5, seRNA6, seRNA7, seRNA8, seRNA9, seRNA10, seRNA11, seRNA12, seRNA13, seRNA14, seRNA15, seRNA16)
+
+#Plot QC metrics
+QC <- plotGroups(
+    ArchRProj = proj, 
+    groupBy = "Sample", 
+    colorBy = "cellColData", 
+    name = "Gex_nGenes", #Can substitute with "log10(Gex_nUMI)", "Gex_MitoRatio", "Gex_RiboRatio", "TSSEnrichment", or "log10(nFrags)"
+    plotAs = "violin",
+    alpha = 0.4,
+    addBoxPlot = TRUE,
+    groupOrder = c("LGS1ODrpe", "LGS1OSrpe", "LGS2OSrpe", "LGS3ODrpe", "LGS3OSrpe", "LGS4ODrpe", "LGS4OSrpe", "LGS5OS2rpe", "LVG1ODrpe", "LVG1OSrpe", "LGS6ODrpe", "LGS6OD2rpe", "LGS7ODrpe", "LGS7OSrpe", "LGS8OSrpe", "LGS8OS2rpe")
+   )
+dev.new()
+QC
+dev.off()
+
+
+#################################################################################
+#Peak calling
+
+#Pseudobulk ATAC and call Peaks
+proj <- proj[proj$celltype != 'B cell'] #Remove B cells as too few for accurate peak calling
+test <- addGroupCoverages(ArchRProj = proj, groupBy = "celltype")
+pathToMacs2 <- findMacs2()
+test <- addReproduciblePeakSet(
+    ArchRProj = test, 
+    groupBy = "celltype", 
+    pathToMacs2 = pathToMacs2,
+    maxPeaks = 10000000
+)
+test <- addPeakMatrix(test)
+getAvailableMatrices(test)
+
+markersPeaks <- getMarkerFeatures(
+    ArchRProj = test, 
+    useMatrix = "PeakMatrix", 
+    groupBy = "celltype",
+    useGroups = c("RPE", "Fibroblast", "Melanocyte", "Macrophage", "Endothelial", "T cell", "Schwann"),
+    bias = c("TSSEnrichment", "log10(nFrags)"),
+    testMethod = "wilcoxon"
+)
+markersPeaks
+saveRDS(markersPeaks, "ArchROutput/allRPE1-16_markerPeaks.rds")
+markerList <- getMarkers(markersPeaks, cutOff = "FDR <= 0.1 & Log2FC >= 0.5")
+markerList
+
+#Plot marker peak heatmap
+heatmapPeaks <- plotMarkerHeatmap(
+  seMarker = markersPeaks, 
+  cutOff = "FDR <= 0.1 & Log2FC >= 0.5",
+  transpose = TRUE,
+  binaryClusterRows = FALSE,
+  returnMatrix = TRUE
+)
+max <- c()
+for (i in 1:ncol(heatmapPeaks)) {
+    value <- gsub("[^0-9.-]", "", which.max(heatmapPeaks[,i]))
+    max <- append(max, value, i)
+} 
+transposed <- as.data.frame(t(heatmapPeaks))
+transposed$max <- max
+orderedPeaks <- transposed[order(transposed$max),]
+write.csv(rev(orderedPeaks[,1:7]), "peakHeatmap.csv")
+
+df <- read.csv("peakHeatmap.csv")
+library(dplyr)
+library(ggplot2)
+library(reshape)
+matrix <- melt(df)
+dev.new(width=8, height=4)
+ggplot(matrix, aes(X , variable, fill= value)) + geom_tile() + scale_fill_gradient2(low="#0096FF", mid="white", high="#A31E22", midpoint = 0)
+dev.off()
+
+saveArchRProject(ArchRProj = proj, outputDirectory = "Saved-Projects", load = FALSE)    #Manually rename .rds file after save
+
+
+#################################################################################
+#scATAC analysis
+
+#Load packages and start R (for after peak calling)
+module load biology
+module load py-macs2
+module load gcc/10.1.0
+module load viz
+module load py-matplotlib/3.4.2_py39
+module load R/3.6.1
+R
+
+setwd("/oak/stanford/groups/howchang/users/seankw/RPE/ArchR/")
+library(ArchR)
+addArchRGenome("hg38")
+test <- readRDS("Saved-Projects/allRPE1-16_postPeakCalls.rds)
+
+#LSI-ATAC
+test <- addIterativeLSI(
+    ArchRProj = test, 
+    clusterParams = list(
+      resolution = 0.3,
+      dimsToUse = 1:30, 
+      sampleCells = 10000,
+      n.start = 10
+    ),
+    saveIterations = FALSE,
+    useMatrix = "TileMatrix", 
+    # depthCol = "nFrags",
+    iterations = 10,
+    seed = 99,
+    name = "LSI_ATAC",
+    force = TRUE
+)
+
+#Correct batch effects
+test <- addHarmony(
+    ArchRProj = test,
+    reducedDims = "LSI_ATAC",
+    name = "Harmony",
+    groupBy = "Sample",
+    force = TRUE
+)
+
+#Plot UMAP
+test <- addUMAP(test, reducedDims = "Harmony", name = "UMAP_ATAC", minDist = 0.8, force = TRUE)
+p1 <- plotEmbedding(test, colorBy = "cellColData", name = "celltype", embedding = "UMAP_ATAC", size = 0.1, labelAsFactors=F, labelMeans=F, pal=c("Macrophage"="#3195ff", "T cell"="#d051eb", "RPE"="#a04000", "Melanocyte"="#f79318", "Schwann"="#129b12", "Fibroblast"="#a5bea5", "Endothelial" = "#f71823"), randomize=FALSE, rastr=FALSE)
+plotPDF(p1, name = "UMAP", ArchRProj = test, addDOC = FALSE)
+
+#Create peak list organized by cell type
+celltypes <- c("RPE", "Fibroblast", "Melanocyte", "Macrophage", "Endothelial", "T.cell", "Schwann")
+cellPeaksBed <- NULL
+for (type in celltypes) {
+    list <- readRDS(paste0("ArchROutput/PeakCalls/", type, "-reproduciblePeaks.gr.rds"))
+    chr <- as.vector(list %>% seqnames(.))
+    start <- list %>% start(.)
+    end <- list %>% end(.)
+    type <- rep(type, each=length(list))    
+    typeBed <- data.frame(chr, start, end, type)
+    cellPeaksBed <- rbind(cellPeaksBed, typeBed)
+}
+write.table(cellPeaksBed, "cellPeaks.bed", sep="\t", col.names=FALSE, row.names=FALSE, quote=FALSE)
+write.table(rowData(markersPeaks), "unionPeaks.bed", sep="\t", col.names=FALSE, row.names=FALSE, quote=FALSE)
+
+#Find enriched motifs 
+test <- addMotifAnnotations(ArchRProj = test, motifSet = "cisbp", name = "Motif", force = TRUE)
+markerPeaks <- readRDS("ArchROutput/allRPE1-16_markerPeaks.rds")
+enrichMotifs <- peakAnnoEnrichment(
+    seMarker = markerPeaks,
+    ArchRProj = test,
+    peakAnnotation = "Motif",
+    cutOff = "FDR <= 1 & Log2FC >= 0" #include all peaks
+  )
+df <- data.frame(TF = rownames(enrichMotifs), mlog10Padj = assay(enrichMotifs)[,1])
+df <- df[order(df$mlog10Padj, decreasing = TRUE),]
+df$rank <- seq_len(nrow(df))
+head(df)
+write.csv(assays(enrichMotifs)$mlog10Padj, "TF_cisbp_mlog10Padj.csv")
+
+#Plot motif heatmap
+library(dplyr)
+library(ggplot2)
+library(reshape)
+df <- read.csv("TFcustomheatmap.csv")
+matrix <- melt(df)
+dev.new(width=16, height=5)
+ggplot(matrix, aes(X, variable, fill= value)) + geom_tile() + scale_fill_gradient2(low="aliceblue", mid="blueviolet", high="black", midpoint = 50)
+dev.off()
+
+#Footprinting
+motifPositions <- getPositions(test)
+motifs <- c("OTX2", "FOS", "SOX4", "SPI1")
+markerMotifs <- unlist(lapply(motifs, function(x) grep(x, names(motifPositions), value = TRUE)))
+markerMotifs
+seFoot <- getFootprints(
+  ArchRProj = test, 
+  positions = motifPositions[markerMotifs], 
+  groupBy = "celltype",
+  flank = 500
+)
+plotFootprints(
+  seFoot = seFoot,
+  ArchRProj = test, 
+  normMethod = "Subtract", 
+  plotName = "Footprints-Subtract-Bias_cisbp",
+  addDOC = FALSE,
+  smoothWindow = 10,
+  flank = 500
+)
+
+#Co-accessibility analysis
+test <- addCoAccessibility(
+    ArchRProj = test,
+    reducedDims = "Harmony"
+)
+
+#Peak2gene analysis
+test <- addPeak2GeneLinks(
+    ArchRProj = test,
+    useMatrix = "GeneExpressionMatrix",
+    reducedDims = "Harmony"
+)
+
+#Create promoter co-accessibility bed file
+library(dplyr)
+cA <- getCoAccessibility(
+    ArchRProj = test,
+    corCutOff = 0.3,
+    resolution = 1,
+    returnLoops = FALSE
+)
+cA_Chr <- (metadata(cA)$peakSet %>% seqnames(.))[cA$queryHits]
+cA_Start <- (metadata(cA)$peakSet %>% start(.))[cA$queryHits]
+cA_End <- (metadata(cA)$peakSet %>% end(.))[cA$queryHits]
+cA_SubjectStart <- (metadata(cA)$peakSet %>% start(.))[cA$subjectHits]
+id <- paste(cA_Chr, cA_SubjectStart)
+cA_Bed <- data.frame(cA_Chr, cA_Start, cA_End, id)
+
+pro_Chr <- test@peakSet@seqnames    #Obtain promoter peaks
+pro_Start <- test@peakSet@ranges@start
+id <- paste(pro_Chr, pro_Start)
+nearestGene <- test@peakSet$nearestGene
+peakType <- test@peakSet$peakType
+PromoterPeaks <- data.frame(id, nearestGene, peakType)
+PromoterPeaks <- PromoterPeaks[peakType == "Promoter",]
+write.table(PromoterPeaks, "PromoterPeaks.txt", sep="\t", col.names=FALSE, row.names=FALSE, quote=FALSE)
+
+Promoter_cA <- inner_join(cA_Bed, PromoterPeaks, by="id")   #Intersect promoter peaks with subject peaks
+Promoter_cA <- Promoter_cA[, -c(6)]
+write.table(Promoter_cA, "Promoter_cA.bed", sep="\t", col.names=FALSE, row.names=FALSE, quote=FALSE)
+
+#Create peak2gene bed file
+p2g <- getPeak2GeneLinks(
+    ArchRProj = test,
+    corCutOff = 0.3,
+    resolution = 1,
+    returnLoops = FALSE
+)
+p2gChr <- (metadata(p2g)$peakSet %>% seqnames(.))[p2g$idxATAC]
+p2gStart <- (metadata(p2g)$peakSet %>% start(.))[p2g$idxATAC]
+p2gEnd <- (metadata(p2g)$peakSet %>% end(.))[p2g$idxATAC]
+p2gGene <- (metadata(p2g)$geneSet)$name[p2g$idxRNA]
+p2gBed <- data.frame(p2gChr, p2gStart, p2gEnd, p2gGene)
+write.table(p2gBed, "p2g.bed", sep="\t", col.names=FALSE, row.names=FALSE, quote=FALSE)
+
+#Export bigWig files for WashU Epigenome Browser
+getGroupBW(
+  ArchRProj = test,
+  groupBy = "celltype",
+  normMethod = "ReadsInTSS",
+  tileSize = 100,
+  maxCells = 1000,
+  ceiling = 4,
+  verbose = TRUE,
+  threads = getArchRThreads(),
+  logFile = createLogFile("getGroupBW")
+)
+
+saveArchRProject(ArchRProj = test, outputDirectory = "Saved-Projects", load = FALSE)
+
+
+#################################################################################
+#scATAC profiles by donor
+
+sample <- test$Sample
+donor <- sub("O.*", "", sample)
+test$donor <- donor
+
+#Performed for each cell type
+cluster <- test[test$celltype == 'RPE']
+cluster <- addGroupCoverages(ArchRProj = cluster, groupBy = "donor")
+pathToMacs2 <- findMacs2()
+cluster <- addReproduciblePeakSet(
+    ArchRProj = cluster, 
+    groupBy = "donor", 
+    pathToMacs2 = pathToMacs2,
+    maxPeaks = 10000000,
+    force = TRUE
+)
+cluster <- addPeakMatrix(cluster)
+getAvailableMatrices(cluster)
+
+#Export bigWig files 
+getGroupBW(
+  ArchRProj = cluster,
+  groupBy = "donor",
+  normMethod = "ReadsInTSS",
+  tileSize = 100,
+  maxCells = 1000,
+  ceiling = 4,
+  verbose = TRUE,
+  threads = getArchRThreads(),
+  logFile = createLogFile("getGroupBW")
+)
+
+
+#################################################################################
+#scATAC comparison of central versus peripheral RPE
+
+setwd("/oak/stanford/groups/howchang/users/seankw/RPE/ArchR/centralVSperipheral")
+
+test <- addGroupCoverages(ArchRProj = proj, groupBy = "cluster")
+pathToMacs2 <- findMacs2()
+test <- addReproduciblePeakSet(
+    ArchRProj = test, 
+    groupBy = "cluster", 
+    pathToMacs2 = pathToMacs2,
+    maxPeaks = 10000000
+)
+test <- addPeakMatrix(test)
+getAvailableMatrices(test)
+
+diffMarkers <- getMarkerFeatures(
+  ArchRProj = test, 
+  useMatrix = "PeakMatrix",
+  groupBy = "cluster",
+  testMethod = "wilcoxon",
+  bias = c("TSSEnrichment", "log10(nFrags)"),
+  useGroups = "1",  #Central RPE
+  bgdGroups = "2"   #Peripheral RPE
+)
+saveRDS(diffMarkers, "/oak/stanford/groups/howchang/users/seankw/RPE/ArchR/ArchROutput/centralVSperipheralRPE_diffPeaks.rds")
+up <- getMarkers(diffMarkers, cutOff = "FDR <= 0.25 & Log2FC >= 0.5")
+down <- getMarkers(diffMarkers, cutOff = "FDR <= 0.25 & Log2FC <= 0.5")
+up$'1'
+down$'1'
+
+#Export bigWig files
+getGroupBW(
+  ArchRProj = test,
+  groupBy = "cluster",
+  normMethod = "ReadsInTSS",
+  tileSize = 100,
+  maxCells = 1000,
+  ceiling = 4,
+  verbose = TRUE,
+  threads = getArchRThreads(),
+  logFile = createLogFile("getGroupBW")
+)
+
+
+#################################################################################
+#scATAC comparison of control versus AMD by cell type
+
+#Performed for each cell type
+cluster <- test[test$celltype == 'RPE']
+
+cluster <- addGroupCoverages(ArchRProj = cluster, groupBy = "condition")
+pathToMacs2 <- findMacs2()
+cluster <- addReproduciblePeakSet(
+    ArchRProj = cluster, 
+    groupBy = "condition", 
+    pathToMacs2 = pathToMacs2,
+    maxPeaks = 10000000,
+    force = TRUE
+)
+cluster <- addPeakMatrix(cluster)
+getAvailableMatrices(cluster)
+
+diffMarkers <- getMarkerFeatures(
+  ArchRProj = cluster, 
+  useMatrix = "PeakMatrix",
+  groupBy = "condition",
+  testMethod = "wilcoxon",
+  bias = c("TSSEnrichment", "log10(nFrags)"),
+  useGroups = "AMD",
+  bgdGroups = "Control"
+)
+saveRDS(diffMarkers, "ArchROutput/AMDvsControl_diffPeaks_RPE.rds")
+up <- getMarkers(diffMarkers, cutOff = "FDR <= 0.25 & Log2FC >= 0.5")
+down <- getMarkers(diffMarkers, cutOff = "FDR <= 0.25 & Log2FC <= 0.5")
+up$AMD
+down$AMD
+
+write.table(down$AMD, "RPE_AMDvsControl.txt", sep="\t", col.names=TRUE, row.names=FALSE, quote=FALSE)
+
+#Export bigWig files
+getGroupBW(
+  ArchRProj = cluster,
+  groupBy = "condition",
+  normMethod = "ReadsInTSS",
+  tileSize = 100,
+  maxCells = 1000,
+  ceiling = 4,
+  verbose = TRUE,
+  threads = getArchRThreads(),
+  logFile = createLogFile("getGroupBW")
+)
+

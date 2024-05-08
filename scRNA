@@ -1,0 +1,473 @@
+#################################################################################
+#QC, performed for each sample
+
+#Create working directory and subfolder
+mkdir LGS1ODrpe_wd
+mkdir LGS1ODrpe_wd/LGS1ODrpe
+
+#Copy cellranger-arc output files to subfolder
+cd LGS1ODrpe/LGS1ODrpe_wd
+cp /oak/stanford/groups/howchang/users/seankw/RPE/cellranger/LGS1ODrpe/outs/filtered_feature_bc_matrix.h5 ./
+cp /oak/stanford/groups/howchang/users/seankw/RPE/cellranger/LGS1ODrpe/outs/atac_fragments.tsv.gz ./
+cp /oak/stanford/groups/howchang/users/seankw/RPE/cellranger/LGS1ODrpe/outs/atac_fragments.tsv.gz.tbi ./ 
+
+#Load packages and start R
+module load biology
+module load py-macs2
+module load gcc/10.1.0
+module load viz
+module load py-matplotlib/3.4.2_py39
+module load R/3.6.1
+R
+
+#Set sample and working directory
+sample <- "LGS1ODrpe"
+setwd(paste("/oak/stanford/groups/howchang/users/seankw/RPE/ArchR/", sample, "_wd", sep=""))
+
+#Create Arrow Files and load ArchR project
+suppressPackageStartupMessages(library(ArchR))
+addArchRGenome("hg38")
+addArchRThreads(16)
+inputFiles <- getInputFiles(sample)[1]
+names(inputFiles) <- sample
+createArrowFiles(inputFiles, force = TRUE) 
+ArrowFiles <- paste(sample, ".arrow", sep="") 
+proj <- ArchRProject(ArrowFiles)
+
+#Import scRNA
+seRNA <- import10xFeatureMatrix(
+    input = c(paste(sample, "/filtered_feature_bc_matrix.h5", sep="")),
+    names = c(sample)
+)
+seRNA
+proj <- addGeneExpressionMatrix(input = proj, seRNA = seRNA, force = TRUE)
+
+#QC filters
+proj <- proj[proj$TSSEnrichment > 4 & proj$nFrags > 1000 & !is.na(proj$Gex_nUMI)]
+proj <- proj[proj$Gex_nUMI > 200 & proj$Gex_nUMI < 10000 & proj$Gex_MitoRatio < 0.01 & proj$Gex_RiboRatio < 0.05]
+
+#Automated doublet filter
+proj <- addDoubletScores(proj)
+proj <- filterDoublets(proj)
+
+#Obtain filtered cell list for Seurat
+cells <- proj$cellNames
+cells <- gsub(paste(sample, "#", sep=""), "", cells)  
+
+#Select cells in Seurat
+setwd("/oak/stanford/groups/howchang/users/seankw/RPE")
+library(Seurat)
+matrix <- Read10X(paste("cellranger/", sample, "/outs/filtered_feature_bc_matrix/", sep=""))	#Directory, not .h5 file
+scRNA <- CreateSeuratObject(counts = matrix$`Gene Expression`, min.cells = 0, min.features = 0, project = "seurat")
+scRNA <- subset(scRNA, cells = cells)
+
+#Save cells
+saveRDS(cells, file=paste("Seurat/preHarmony/", sample, "_cells_umi10k", sep=""))
+
+
+#################################################################################
+#Create Seurat objects
+
+umi <- "10k"
+
+matrix <- Read10X("cellranger/LGS1ODrpe/outs/filtered_feature_bc_matrix/")	#Directory, not .h5 file
+scRNA <- CreateSeuratObject(counts = matrix$`Gene Expression`, min.cells = 0, min.features = 0, project = "seurat")
+cells <- readRDS(paste("Seurat/preHarmony/LGS1ODrpe_cells_umi", umi, sep=""))
+scRNA1 <- subset(scRNA, cells = cells)
+
+matrix <- Read10X("cellranger/LGS1OSrpe/outs/filtered_feature_bc_matrix/")	#Directory, not .h5 file
+scRNA <- CreateSeuratObject(counts = matrix$`Gene Expression`, min.cells = 0, min.features = 0, project = "seurat")
+cells <- readRDS(paste("Seurat/preHarmony/LGS1OSrpe_cells_umi", umi, sep=""))
+scRNA2 <- subset(scRNA, cells = cells)
+
+matrix <- Read10X("cellranger/LGS2OSrpe/outs/filtered_feature_bc_matrix/")	#Directory, not .h5 file
+scRNA <- CreateSeuratObject(counts = matrix$`Gene Expression`, min.cells = 0, min.features = 0, project = "seurat")
+cells <- readRDS(paste("Seurat/preHarmony/LGS2OSrpe_cells_umi", umi, sep=""))
+scRNA3 <- subset(scRNA, cells = cells)
+
+matrix <- Read10X("cellranger/LGS3ODrpe/outs/filtered_feature_bc_matrix/")	#Directory, not .h5 file
+scRNA <- CreateSeuratObject(counts = matrix$`Gene Expression`, min.cells = 0, min.features = 0, project = "seurat")
+cells <- readRDS(paste("Seurat/preHarmony/LGS3ODrpe_cells_umi", umi, sep=""))
+scRNA4 <- subset(scRNA, cells = cells)
+
+matrix <- Read10X("cellranger/LGS3OSrpe/outs/filtered_feature_bc_matrix/")	#Directory, not .h5 file
+scRNA <- CreateSeuratObject(counts = matrix$`Gene Expression`, min.cells = 0, min.features = 0, project = "seurat")
+cells <- readRDS(paste("Seurat/preHarmony/LGS3OSrpe_cells_umi", umi, sep=""))
+scRNA5 <- subset(scRNA, cells = cells)
+
+matrix <- Read10X("cellranger/LGS4ODrpe/outs/filtered_feature_bc_matrix/")	#Directory, not .h5 file
+scRNA <- CreateSeuratObject(counts = matrix$`Gene Expression`, min.cells = 0, min.features = 0, project = "seurat")
+cells <- readRDS(paste("Seurat/preHarmony/LGS4ODrpe_cells_umi", umi, sep=""))
+scRNA6 <- subset(scRNA, cells = cells)
+
+matrix <- Read10X("cellranger/LGS4OSrpe/outs/filtered_feature_bc_matrix/")	#Directory, not .h5 file
+scRNA <- CreateSeuratObject(counts = matrix$`Gene Expression`, min.cells = 0, min.features = 0, project = "seurat")
+cells <- readRDS(paste("Seurat/preHarmony/LGS4OSrpe_cells_umi", umi, sep=""))
+scRNA7 <- subset(scRNA, cells = cells)
+
+matrix <- Read10X("cellranger/LGS5OS2rpe/outs/filtered_feature_bc_matrix/")  #Directory, not .h5 file
+scRNA <- CreateSeuratObject(counts = matrix$`Gene Expression`, min.cells = 0, min.features = 0, project = "seurat")
+cells <- readRDS(paste("Seurat/preHarmony/LGS5OS2rpe_cells_umi", umi, sep=""))
+scRNA8 <- subset(scRNA, cells = cells)
+
+matrix <- Read10X("cellranger/LVG1ODrpe/outs/filtered_feature_bc_matrix/")	#Directory, not .h5 file
+scRNA <- CreateSeuratObject(counts = matrix$`Gene Expression`, min.cells = 0, min.features = 0, project = "seurat")
+cells <- readRDS(paste("Seurat/preHarmony/LVG1ODrpe_cells_umi", umi, sep=""))
+scRNA9 <- subset(scRNA, cells = cells)
+
+matrix <- Read10X("cellranger/LVG1OSrpe/outs/filtered_feature_bc_matrix/")	#Directory, not .h5 file
+scRNA <- CreateSeuratObject(counts = matrix$`Gene Expression`, min.cells = 0, min.features = 0, project = "seurat")
+cells <- readRDS(paste("Seurat/preHarmony/LVG1OSrpe_cells_umi", umi, sep=""))
+scRNA10 <- subset(scRNA, cells = cells)
+
+matrix <- Read10X("cellranger/LGS6ODrpe/outs/filtered_feature_bc_matrix/")  #Directory, not .h5 file
+scRNA <- CreateSeuratObject(counts = matrix$`Gene Expression`, min.cells = 0, min.features = 0, project = "seurat")
+cells <- readRDS(paste("Seurat/preHarmony/LGS6ODrpe_cells_umi", umi, sep=""))
+scRNA11 <- subset(scRNA, cells = cells)
+
+matrix <- Read10X("cellranger/LGS7ODrpe/outs/filtered_feature_bc_matrix/")  #Directory, not .h5 file
+scRNA <- CreateSeuratObject(counts = matrix$`Gene Expression`, min.cells = 0, min.features = 0, project = "seurat")
+cells <- readRDS(paste("Seurat/preHarmony/LGS7ODrpe_cells_umi", umi, sep=""))
+scRNA12 <- subset(scRNA, cells = cells)
+
+matrix <- Read10X("cellranger/LGS7OSrpe/outs/filtered_feature_bc_matrix/")  #Directory, not .h5 file
+scRNA <- CreateSeuratObject(counts = matrix$`Gene Expression`, min.cells = 0, min.features = 0, project = "seurat")
+cells <- readRDS(paste("Seurat/preHarmony/LGS7OSrpe_cells_umi", umi, sep=""))
+scRNA13 <- subset(scRNA, cells = cells)
+
+matrix <- Read10X("cellranger/LGS6OD2rpe/outs/filtered_feature_bc_matrix/")  #Directory, not .h5 file
+scRNA <- CreateSeuratObject(counts = matrix$`Gene Expression`, min.cells = 0, min.features = 0, project = "seurat")
+cells <- readRDS(paste("Seurat/preHarmony/LGS6OD2rpe_cells_umi", umi, sep=""))
+scRNA14 <- subset(scRNA, cells = cells)
+
+matrix <- Read10X("cellranger/LGS8OSrpe/outs/filtered_feature_bc_matrix/")  #Directory, not .h5 file
+scRNA <- CreateSeuratObject(counts = matrix$`Gene Expression`, min.cells = 0, min.features = 0, project = "seurat")
+cells <- readRDS(paste("Seurat/preHarmony/LGS8OSrpe_cells_umi", umi, sep=""))
+scRNA15 <- subset(scRNA, cells = cells)
+
+matrix <- Read10X("cellranger/LGS8OS2rpe/outs/filtered_feature_bc_matrix/")  #Directory, not .h5 file
+scRNA <- CreateSeuratObject(counts = matrix$`Gene Expression`, min.cells = 0, min.features = 0, project = "seurat")
+cells <- readRDS(paste("Seurat/preHarmony/LGS8OS2rpe_cells_umi", umi, sep=""))
+scRNA16 <- subset(scRNA, cells = cells)
+
+rm(matrix)
+rm(scRNA)
+rm(cells)
+
+
+#################################################################################
+#Doublet/multiplet removal, performed for each sample
+
+library(dplyr)
+umi <- "10k"
+test <- scRNA1 #select sample here
+
+test <- NormalizeData(test)
+test <- FindVariableFeatures(test, selection.method = "vst", nfeatures = 2000)
+all.genes <- rownames(test)
+test <- ScaleData(test, features = all.genes)
+test <- RunPCA(test, features = VariableFeatures(object = test), verbose = FALSE)
+ElbowPlot(test)	#Determine dimensionality
+
+test <- test %>% 
+    RunUMAP(dims = 1:30) %>% 
+    FindNeighbors(dims = 1:30) %>% 
+    FindClusters(resolution = 0.3) %>% 
+    identity()
+dev.new()
+DimPlot(test, reduction = "umap", pt.size = .1)
+dev.off()
+table(Idents(test))	#Cells per cluster
+
+scRNA.markers <- FindAllMarkers(test, only.pos = TRUE, min.pct = 0.6, logfc.threshold = 1)
+display <- scRNA.markers %>%
+    group_by(cluster) %>%
+    slice_max(n = 5, order_by = avg_logFC)
+print.data.frame(display)
+
+#Remove cluster if no markers >1 log2FC and pct >0.6, or if markers from >1 cell type
+#After removing, re-map clusters
+test <- subset(x = test, subset = seurat_clusters == "5", invert = TRUE)
+test <- subset(x = test, subset = seurat_clusters == "8", invert = TRUE)
+
+#Re-cluster (repeat until no clusters meeting criteria for removal)
+test <- test %>% 
+    RunUMAP(dims = 1:30) %>% 
+    FindNeighbors(dims = 1:30) %>% 
+    FindClusters(resolution = 0.3) %>% 
+    identity()
+dev.new()
+DimPlot(test, reduction = "umap", pt.size = .1)
+dev.off()
+table(Idents(test)) #Cells per cluster
+
+saveRDS(scRNA.markers, file = "Seurat/scRNA.markers")
+write.table(scRNA.markers, "Seurat/scRNAmarkers.txt", sep="\t", col.names=TRUE, row.names=TRUE, quote=FALSE)
+saveRDS(test, file = paste("Seurat/preHarmony/LGS1ODrpe_analyzed_dim30", umi, sep=""))
+
+#Check differential genes between clusters
+diff <- FindMarkers(test, ident.1 = "0", ident.2 = "1")
+
+
+#################################################################################
+#Batch correction 
+
+library(cowplot)
+library(harmony)
+
+scRNA1 <- readRDS(paste("Seurat/preHarmony/LGS1ODrpe_analyzed_dim30", umi, sep=""))
+scRNA2 <- readRDS(paste("Seurat/preHarmony/LGS1OSrpe_analyzed_dim30", umi, sep=""))
+scRNA3 <- readRDS(paste("Seurat/preHarmony/LGS2OSrpe_analyzed_dim30", umi, sep=""))
+scRNA4 <- readRDS(paste("Seurat/preHarmony/LGS3ODrpe_analyzed_dim30", umi, sep=""))
+scRNA5 <- readRDS(paste("Seurat/preHarmony/LGS3OSrpe_analyzed_dim30", umi, sep=""))
+scRNA6 <- readRDS(paste("Seurat/preHarmony/LGS4ODrpe_analyzed_dim30", umi, sep=""))
+scRNA7 <- readRDS(paste("Seurat/preHarmony/LGS4OSrpe_analyzed_dim30", umi, sep=""))
+scRNA8 <- readRDS(paste("Seurat/preHarmony/LGS5OS2rpe_analyzed_dim30", umi, sep=""))
+scRNA9 <- readRDS(paste("Seurat/preHarmony/LVG1ODrpe_analyzed_dim30", umi, sep=""))
+scRNA10 <- readRDS(paste("Seurat/preHarmony/LVG1OSrpe_analyzed_dim30", umi, sep=""))
+scRNA11 <- readRDS(paste("Seurat/preHarmony/LGS6ODrpe_analyzed_dim30", umi, sep=""))
+scRNA12 <- readRDS(paste("Seurat/preHarmony/LGS7ODrpe_analyzed_dim30", umi, sep=""))
+scRNA13 <- readRDS(paste("Seurat/preHarmony/LGS7OSrpe_analyzed_dim30", umi, sep=""))
+scRNA14 <- readRDS(paste("Seurat/preHarmony/LGS6OD2rpe_analyzed_dim30", umi, sep=""))
+scRNA15 <- readRDS(paste("Seurat/preHarmony/LGS8OSrpe_analyzed_dim30", umi, sep=""))
+scRNA16 <- readRDS(paste("Seurat/preHarmony/LGS8OS2rpe_analyzed_dim30", umi, sep=""))
+
+#Create merged Seurat object
+merged <- merge(scRNA1, y = c(scRNA2, scRNA3, scRNA4, scRNA5, scRNA6, scRNA7, scRNA8, scRNA9, scRNA10, scRNA11, scRNA12, scRNA13, scRNA14, scRNA15, scRNA16), add.cell.ids = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"), project = "RPE")
+
+merged <- NormalizeData(merged)
+merged <- FindVariableFeatures(merged, selection.method = "vst", nfeatures = 2000)
+all.genes <- rownames(merged)
+merged <- ScaleData(merged, features = all.genes)
+merged <- RunPCA(merged, features = VariableFeatures(object = merged), verbose = FALSE)
+ElbowPlot(merged)	#Determine dimensionality
+
+merged@meta.data$ID <- c(rep("1", ncol(scRNA1)), rep("2", ncol(scRNA2)), rep("3", ncol(scRNA3)), rep("4", ncol(scRNA4)), rep("5", ncol(scRNA5)), rep("6", ncol(scRNA6)), rep("7", ncol(scRNA7)), rep("8", ncol(scRNA8)), rep("9", ncol(scRNA9)), rep("10", ncol(scRNA10)), rep("11", ncol(scRNA11)), rep("12", ncol(scRNA12)), rep("13", ncol(scRNA13)), rep("14", ncol(scRNA14)), rep("15", ncol(scRNA15)), rep("16", ncol(scRNA16)))
+
+#Check uncorrected PCs
+options(repr.plot.height = 5, repr.plot.width = 12)
+p1 <- DimPlot(object = merged, reduction = "pca", pt.size = .1, group.by = "ID")
+p2 <- VlnPlot(object = merged, features = "PC_1", group.by = "ID", pt.size = .1)
+dev.new()
+plot_grid(p1,p2)
+dev.off()
+
+#Run Harmony
+options(repr.plot.height = 2.5, repr.plot.width = 6)
+merged <- merged %>% 
+    RunHarmony("ID", plot_convergence = TRUE)
+
+#Check corrected PCs
+options(repr.plot.height = 5, repr.plot.width = 12)
+p1 <- DimPlot(object = merged, reduction = "harmony", pt.size = .1, group.by = "ID")
+p2 <- VlnPlot(object = merged, features = "harmony_1", group.by = "ID", pt.size = .1)
+dev.new()
+plot_grid(p1,p2)
+dev.off()
+
+saveRDS(merged, file = paste("Seurat/postHarmony/allRPEmerged_preUMAP_umi", umi, "1-16", sep=""))
+
+
+#################################################################################
+#Clustering
+
+library(dplyr)
+test <- merged %>% 
+    RunUMAP(reduction = "harmony", dims = 1:30) %>% 
+    FindNeighbors(reduction = "harmony", dims = 1:30) %>% 
+    FindClusters(resolution = 0.3) %>% 
+    identity()
+
+#View clusters
+dev.new()
+DimPlot(test, reduction = "umap", pt.size = .1)
+dev.off()
+table(Idents(test)) #Cells per cluster
+
+#View clusters by sample
+dev.new(height = 4, width = 16)
+DimPlot(test, reduction = "umap", group.by = "ID", pt.size = .1, split.by = 'ID')
+dev.off()
+
+scRNA.markers <- FindAllMarkers(test, only.pos = TRUE, min.pct = 0.6, logfc.threshold = 1)
+display <- scRNA.markers %>%
+    group_by(cluster) %>%
+    slice_max(n = 5, order_by = avg_logFC)
+print.data.frame(display)
+
+#Remove cluster if no markers >1 log2FC and pct >0.6, or if markers from >1 cluster
+test <- subset(x = test, subset = seurat_clusters == "9", invert = TRUE)
+test <- subset(x = test, subset = seurat_clusters == "13", invert = TRUE)
+
+#Re-harmonize and re-cluster (repeat until no clusters meeting criteria for removal)
+test <- test %>% 
+    RunHarmony("ID", plot_convergence = TRUE)
+test <- test %>% 
+    RunUMAP(reduction = "harmony", dims = 1:30) %>% 
+    FindNeighbors(reduction = "harmony", dims = 1:30) %>% 
+    FindClusters(resolution = 0.3) %>% 
+    identity()
+dev.new()
+DimPlot(test, reduction = "umap", pt.size = .1)
+dev.off()
+table(Idents(test))	#Cells per cluster
+
+#Visually confirm markers
+dev.new()
+VlnPlot(test, features = c("RGR", "FBLN1", "TYR", "VWF", "F13A1", "PTPRC", "CD247", "SCN7A", "BLK"), pt.size = 0)
+dev.off()
+
+#Check markers for and remove non-RPE/choroid cells
+dev.new()
+VlnPlot(test, features = c("ATP6V1C2", "SLC4A4", "TFPI2", "COL9A1", "OPTC", "ZIC1", "CHRM3", "MYH11", "MYL9", "AIPL1", "PDE6A", "RHO"), pt.size = 0)
+dev.off()
+
+#Assign clusters
+new.cluster.ids <- c("Fibroblast", "RPE", "RPE", "Melanocyte", "Endothelial", "Macrophage", "T cell", "Schwann", "B cell")
+names(new.cluster.ids) <- levels(test)
+test <- RenameIdents(test, new.cluster.ids)
+test$active.ident <- test@active.ident
+
+#Custom palette for UMAP
+colors <- c("#5e4fa2", "#129b12", "#3195ff", "#a5bea5", "#f71823", "#f79318", "#a04000", "#d051eb")
+
+dev.new()
+DimPlot(test, cols=colors, pt.size = 0.1, order = c("T cell", "RPE", "Melanocyte", "Endothelial", "Fibroblast", "Macrophage", "Schwann", "B cell"))
+dev.off()
+
+#Dot plot of marker genes
+dot_genes <- c("BLK", "BANK1",	#B cell
+	"SCN7A", "NRXN1", #Schwann
+	"SKAP1", "CD247", "PTPRC",   #T cell
+    "CD163", "F13A1", #Macrophage
+	"VWF", "FLT1",	#Endothelial
+	"SYNPR", "TYR", #Melanocyte
+	"RARRES1", "FBLN1",    #Fibroblast
+	"RPE65", "RGR", "BEST1" #RPE   
+)
+dev.new(height = 3, width = 18)
+p1 <- DotPlot(object = test, features = dot_genes)
+plot(p1)
+dev.off()	
+
+saveRDS(test, file = "Seurat/postHarmony/allRPE1-16_postUMAP") 
+#test <- readRDS("Seurat/postHarmony/allRPE1-16_postUMAP")
+
+
+#################################################################################
+#Control vs AMD analyses
+
+condition <- rep(c("Control", "AMD"), times=c(22439, 16330)) 
+test$condition <- condition
+dev.new()
+DimPlot(test, reduction = "umap", pt.size = .1, group.by = 'condition', shuffle = TRUE, cols=c("#FE5F55", "#3083DC"))
+dev.off()
+
+#Select cell type for comparison
+cluster <- subset(x = test, subset = active.ident == "RPE")
+cluster <- cluster %>% 
+    RunUMAP(reduction = "harmony", dims = 1:30) %>% 
+    FindNeighbors(reduction = "harmony", dims = 1:30) %>% 
+    FindClusters(resolution = 0.3) %>% 
+    identity()
+dev.new()
+DimPlot(cluster, reduction = "umap", pt.size = .1, group.by = 'condition')
+dev.off()
+table(Idents(cluster))	#Cells per cluster
+
+library(ggplot2)
+library(cowplot)
+theme_set(theme_cowplot())
+Idents(cluster) <- "condition"
+avg.cluster <- log1p(AverageExpression(cluster, verbose = FALSE)$RNA)
+avg.cluster$gene <- rownames(avg.cluster)
+diff <- FindAllMarkers(cluster, only.pos = TRUE, min.pct = 0.2, logfc.threshold = 1)
+diff
+
+genes.to.label = diff$gene
+p1 <- ggplot(avg.cluster, aes(Control, AMD)) + geom_point(color="gray")
+p1 <- LabelPoints(plot = p1, points = genes.to.label, repel = TRUE)
+dev.new()
+plot_grid(p1)
+dev.off()
+
+#Dot plot of AMD GWAS coding genes
+dot_genes <- c("VTN", "TSPAN10", "TIMP3", "SLC16A8", "SKIV2L", "PILRB", "NRTN", "MMP9", "FUT6", "CFI", "CFHR5", "CFHR4", "CFHR1", "CFH", "CFB", "C9", "C3", "ARMS2", "APOE")
+dev.new(height = 3, width = 9)
+p1 <- DotPlot(object = test, features = dot_genes)
+plot(p1)
+dev.off()   
+
+
+#################################################################################
+#Compare with public scRNA-seq data from UCSC Cell Browser
+
+library(Seurat)
+library(data.table)
+mat <- fread("exprMatrix.tsv.gz")
+meta <- read.table("meta.tsv", header=T, sep="\t", as.is=T, row.names=1)
+genes = mat[,1][[1]]
+genes = gsub(".+[|]", "", genes)
+mat = data.frame(mat[,-1], row.names=genes)
+so <- CreateSeuratObject(counts = mat, project = "Voigt", meta.data=meta)
+
+identities <- scan("identities.tsv", character())
+identities <- noquote(identities)
+so$CellType <- identities
+
+#Dot plot of marker genes
+dot_genes <- c("BLK", "BANK1",  #B cell
+    "SCN7A", "NRXN1", #Schwann
+    "SKAP1", "CD247", "PTPRC",   #T cell
+    "CD163", "F13A1", #Macrophage
+    "VWF", "FLT1",  #Endothelial
+    "SYNPR", "TYR", #Melanocyte
+    "RARRES1", "FBLN1",    #Fibroblast
+    "RPE65", "RGR", "BEST1" #RPE   
+)
+dev.new(height = 3, width = 18)
+p1 <- DotPlot(object = so, features = dot_genes, group.by = "CellType")
+plot(p1)
+dev.off()   
+
+
+#################################################################################
+#Prepare cell list for ArchR
+
+col <- colnames(test)
+
+#Rename cells to match ArchR names
+col <- gsub("10_", "LVG1OSrpe#", col) 
+col <- gsub("11_", "LGS6ODrpe#", col) 
+col <- gsub("12_", "LGS7ODrpe#", col) 
+col <- gsub("13_", "LGS7OSrpe#", col)
+col <- gsub("14_", "LGS6OD2rpe#", col)
+col <- gsub("15_", "LGS8OSrpe#", col) 
+col <- gsub("16_", "LGS8OS2rpe#", col) 
+col <- gsub("1_", "LGS1ODrpe#", col)
+col <- gsub("2_", "LGS1OSrpe#", col)  
+col <- gsub("3_", "LGS2OSrpe#", col) 
+col <- gsub("4_", "LGS3ODrpe#", col) 
+col <- gsub("5_", "LGS3OSrpe#", col) 
+col <- gsub("6_", "LGS4ODrpe#", col) 
+col <- gsub("7_", "LGS4OSrpe#", col) 
+col <- gsub("8_", "LGS5OS2rpe#", col) 
+col <- gsub("9_", "LVG1ODrpe#", col) 
+saveRDS(col, file="Seurat/postHarmony/allRPE1-16_cellList")
+
+
+#################################################################################
+#Write matrix files
+
+library(DropletUtils)
+write10xCounts(x = test@assays$RNA@counts, version="3", path="/oak/stanford/groups/howchang/users/seankw/GEO/RPE_upload/processed_scRNA/")
+
+#Cluster file
+write.table(test@reductions$umap@cell.embeddings, "clusters.txt", sep="\t", col.names=FALSE, row.names=TRUE, quote=FALSE)
+
+#Summary table
+features <- rownames(test@assays$RNA)
+summary <- DotPlot(object = test, features = features)
+summarytable <- summary$data
+write.table(summarytable, "summarytable.tsv", sep="\t", col.names=FALSE, row.names=FALSE, quote=FALSE)
+
