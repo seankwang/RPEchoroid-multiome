@@ -197,7 +197,7 @@ dev.new(width=8, height=4)
 ggplot(matrix, aes(X , variable, fill= value)) + geom_tile() + scale_fill_gradient2(low="#0096FF", mid="white", high="#A31E22", midpoint = 0)
 dev.off()
 
-saveArchRProject(ArchRProj = proj, outputDirectory = "Saved-Projects", load = FALSE)    #Manually rename .rds file after save
+saveArchRProject(ArchRProj = proj, outputDirectory = "Saved-Projects", load = FALSE)
 
 
 #################################################################################
@@ -215,7 +215,7 @@ R
 setwd("/oak/stanford/groups/howchang/users/seankw/RPE/ArchR/")
 library(ArchR)
 addArchRGenome("hg38")
-test <- readRDS("Saved-Projects/allRPE1-16_postPeakCalls.rds)
+test <- loadArchRProject(path="Saved-Projects/", force = FALSE, showLogo = TRUE)
 
 #LSI-ATAC
 test <- addIterativeLSI(
@@ -224,11 +224,10 @@ test <- addIterativeLSI(
       resolution = 0.3,
       dimsToUse = 1:30, 
       sampleCells = 10000,
-      n.start = 10
+      maxClusters = NULL
     ),
     saveIterations = FALSE,
-    useMatrix = "TileMatrix", 
-    # depthCol = "nFrags",
+    useMatrix = "PeakMatrix", 
     iterations = 10,
     seed = 99,
     name = "LSI_ATAC",
@@ -246,8 +245,8 @@ test <- addHarmony(
 
 #Plot UMAP
 test <- addUMAP(test, reducedDims = "Harmony", name = "UMAP_ATAC", minDist = 0.8, force = TRUE)
-p1 <- plotEmbedding(test, colorBy = "cellColData", name = "celltype", embedding = "UMAP_ATAC", size = 0.1, labelAsFactors=F, labelMeans=F, pal=c("Macrophage"="#3195ff", "T cell"="#d051eb", "RPE"="#a04000", "Melanocyte"="#f79318", "Schwann"="#129b12", "Fibroblast"="#a5bea5", "Endothelial" = "#f71823"), randomize=FALSE, rastr=FALSE)
-plotPDF(p1, name = "UMAP", ArchRProj = test, addDOC = FALSE)
+p1 <- plotEmbedding(test, colorBy = "cellColData", name = "celltype", embedding = "UMAP_ATAC", size = 0.1, labelAsFactors=F, labelMeans=F, rastr=FALSE)
+plotPDF(p1, name = "UMAP", ArchRProj = test, addDOC = FALSE, width = 5, height = 5)
 
 #Create peak list organized by cell type
 celltypes <- c("RPE", "Fibroblast", "Melanocyte", "Macrophage", "Endothelial", "T.cell", "Schwann")
@@ -371,7 +370,7 @@ getGroupBW(
   groupBy = "celltype",
   normMethod = "ReadsInTSS",
   tileSize = 100,
-  maxCells = 1000,
+  maxCells = 10000,
   ceiling = 4,
   verbose = TRUE,
   threads = getArchRThreads(),
@@ -408,7 +407,7 @@ getGroupBW(
   groupBy = "donor",
   normMethod = "ReadsInTSS",
   tileSize = 100,
-  maxCells = 1000,
+  maxCells = 10000,
   ceiling = 4,
   verbose = TRUE,
   threads = getArchRThreads(),
@@ -453,7 +452,7 @@ getGroupBW(
   groupBy = "cluster",
   normMethod = "ReadsInTSS",
   tileSize = 100,
-  maxCells = 1000,
+  maxCells = 10000,
   ceiling = 4,
   verbose = TRUE,
   threads = getArchRThreads(),
@@ -465,7 +464,7 @@ getGroupBW(
 #scATAC comparison of control versus AMD by cell type
 
 #Performed for each cell type
-cluster <- test[test$celltype == 'RPE']
+cluster <- test[test$celltype == 'Macrophage']
 
 cluster <- addGroupCoverages(ArchRProj = cluster, groupBy = "condition")
 pathToMacs2 <- findMacs2()
@@ -488,13 +487,13 @@ diffMarkers <- getMarkerFeatures(
   useGroups = "AMD",
   bgdGroups = "Control"
 )
-saveRDS(diffMarkers, "ArchROutput/AMDvsControl_diffPeaks_RPE.rds")
+saveRDS(diffMarkers, "ArchROutput/AMDvsControl_diffPeaks_Macrophage.rds")
 up <- getMarkers(diffMarkers, cutOff = "FDR <= 0.25 & Log2FC >= 0.5")
 down <- getMarkers(diffMarkers, cutOff = "FDR <= 0.25 & Log2FC <= 0.5")
 up$AMD
 down$AMD
 
-write.table(down$AMD, "RPE_AMDvsControl.txt", sep="\t", col.names=TRUE, row.names=FALSE, quote=FALSE)
+write.table(down$AMD, "Macrophage_AMDvsControl.txt", sep="\t", col.names=TRUE, row.names=FALSE, quote=FALSE)
 
 #Export bigWig files
 getGroupBW(
@@ -502,7 +501,7 @@ getGroupBW(
   groupBy = "condition",
   normMethod = "ReadsInTSS",
   tileSize = 100,
-  maxCells = 1000,
+  maxCells = 10000,
   ceiling = 4,
   verbose = TRUE,
   threads = getArchRThreads(),
