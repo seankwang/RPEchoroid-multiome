@@ -381,11 +381,19 @@ theme_set(theme_cowplot())
 Idents(cluster) <- "condition"
 avg.cluster <- log1p(AverageExpression(cluster, verbose = FALSE)$RNA)
 avg.cluster$gene <- rownames(avg.cluster)
-diff <- FindAllMarkers(cluster, only.pos = TRUE, min.pct = 0.2, logfc.threshold = 1)
-diff
 
-genes.to.label = diff$gene
-p1 <- ggplot(avg.cluster, aes(Control, AMD)) + geom_point(color="gray")
+diff <- FindMarkers(cluster, ident.1 = "AMD", ident.2 = "Control", logfc.threshold = 0.5, min.pct = 0.3)
+diff <- filter(diff, p_val_adj<0.05)
+diff
+nrow(diff)
+write.table(diff, "Seurat/diffTables/AMDvsControl_RPE.tsv", sep="\t", col.names=TRUE, row.names=TRUE, quote=FALSE)
+
+diff$mag <- abs(diff$avg_logFC)
+label <- head(diff[order(-diff$mag),],10)   #10 genes with largest fold change
+genes.to.label = rownames(label)
+avg.cluster$highlight <- ifelse(rownames(avg.cluster) %in% genes.to.label, "highlight", "normal")
+p1 <- ggplot(avg.cluster, aes(x = Control, y = AMD, color = highlight)) + geom_point() + 
+    scale_color_manual(values = c("highlight" = "red", "normal" = "gray")) + theme(legend.position = "none")
 p1 <- LabelPoints(plot = p1, points = genes.to.label, repel = TRUE)
 dev.new()
 plot_grid(p1)
