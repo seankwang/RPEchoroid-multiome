@@ -145,7 +145,8 @@ dev.off()
 #Peak calling
 
 #Pseudobulk ATAC and call Peaks
-proj <- proj[proj$celltype != 'B cell'] #Remove B cells as too few for accurate peak calling
+proj <- proj[proj$celltype != 'Pericyte'] #Remove pericytes and B cells as too few for accurate peak calling 
+proj <- proj[proj$celltype != 'B cell'] 
 test <- addGroupCoverages(ArchRProj = proj, groupBy = "celltype")
 pathToMacs2 <- findMacs2()
 test <- addReproduciblePeakSet(
