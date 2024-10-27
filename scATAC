@@ -417,9 +417,7 @@ getGroupBW(
 
 
 #################################################################################
-#scATAC comparison of central versus peripheral RPE
-
-setwd("/oak/stanford/groups/howchang/users/seankw/RPE/ArchR/centralVSperipheral")
+#scATAC comparison of macular versus peripheral RPE
 
 test <- addGroupCoverages(ArchRProj = proj, groupBy = "cluster")
 pathToMacs2 <- findMacs2()
@@ -438,10 +436,10 @@ diffMarkers <- getMarkerFeatures(
   groupBy = "cluster",
   testMethod = "wilcoxon",
   bias = c("TSSEnrichment", "log10(nFrags)"),
-  useGroups = "1",  #Central RPE
+  useGroups = "0",  #Macular RPE
   bgdGroups = "2"   #Peripheral RPE
 )
-saveRDS(diffMarkers, "/oak/stanford/groups/howchang/users/seankw/RPE/ArchR/ArchROutput/centralVSperipheralRPE_diffPeaks.rds")
+saveRDS(diffMarkers, "/oak/stanford/groups/howchang/users/seankw/RPE/ArchR/ArchROutput/macularVSperipheralRPE_diffPeaks.rds")
 up <- getMarkers(diffMarkers, cutOff = "FDR <= 0.25 & Log2FC >= 0.5")
 down <- getMarkers(diffMarkers, cutOff = "FDR <= 0.25 & Log2FC <= 0.5")
 up$'1'
