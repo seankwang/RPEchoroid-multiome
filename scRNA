@@ -340,7 +340,7 @@ dot_genes <- c("BLK", "BANK1",	#B cell
 	"MYH11", "ACTA2",   #Pericyte
 	"SCN7A", "NRXN1", #Schwann
 	"SKAP1", "CD247", "PTPRC",   #T cell
-    "CD163", "F13A1", #Macrophage
+    	"CD163", "F13A1", #Macrophage
 	"VWF", "FLT1",	#Endothelial
 	"SYNPR", "TYR", #Melanocyte
 	"RARRES1", "FBLN1",    #Fibroblast
