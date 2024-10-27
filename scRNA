@@ -415,7 +415,7 @@ dev.new()
 plot(p1)
 dev.off()
 
-#Dot plot of AMD GWAS coding genes
+#Dot plot of AMD coding genes
 dot_genes <- c("VTN", "TSPAN10", "TIMP3", "SKIV2L", "SLC16A8", "PRRC2A", "PILRB", "NRTN", "MMP9", "LY6G6F", "FUT6", "EXOC3L2", "CFI", "CFHR5", "CFHR4", "CFHR1", "CFH", "CFB", "C9", "C3", "ARMS2", "APOE")
 dev.new(height = 3, width = 9)
 p1 <- DotPlot(object = test, features = dot_genes)
