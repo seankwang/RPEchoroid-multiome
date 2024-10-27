@@ -314,29 +314,30 @@ table(Idents(test))	#Cells per cluster
 
 #Visually confirm markers
 dev.new()
-VlnPlot(test, features = c("RGR", "FBLN1", "TYR", "VWF", "F13A1", "PTPRC", "CD247", "SCN7A", "BLK"), pt.size = 0)
+VlnPlot(test, features = c("RGR", "FBLN1", "TYR", "VWF", "F13A1", "PTPRC", "CD247", "SCN7A", "ACTA2", "BLK"), pt.size = 0)
 dev.off()
 
 #Check markers for and remove non-RPE/choroid cells
 dev.new()
-VlnPlot(test, features = c("ATP6V1C2", "SLC4A4", "TFPI2", "COL9A1", "OPTC", "ZIC1", "CHRM3", "MYH11", "MYL9", "AIPL1", "PDE6A", "RHO"), pt.size = 0)
+VlnPlot(test, features = c("ATP6V1C2", "SLC4A4", "TFPI2", "COL9A1", "OPTC", "ZIC1", "AIPL1", "PDE6A", "RHO"), pt.size = 0)
 dev.off()
 
 #Assign clusters
-new.cluster.ids <- c("Fibroblast", "RPE", "RPE", "Melanocyte", "Endothelial", "Macrophage", "T cell", "Schwann", "B cell")
+new.cluster.ids <- c("RPE", "Fibroblast", "RPE", "Melanocyte", "Endothelial", "Macrophage", "T cell", "Schwann", "Pericyte", "B cell")
 names(new.cluster.ids) <- levels(test)
 test <- RenameIdents(test, new.cluster.ids)
 test$active.ident <- test@active.ident
 
 #Custom palette for UMAP
-colors <- c("#5e4fa2", "#129b12", "#3195ff", "#a5bea5", "#f71823", "#f79318", "#a04000", "#d051eb")
+colors <- c("#5e4fa2", "#129b12", "#3195ff", "#F6A5C0", "#a5bea5", "#f71823", "#f79318", "#a04000", "#d051eb")
 
 dev.new()
-DimPlot(test, cols=colors, pt.size = 0.1, order = c("T cell", "RPE", "Melanocyte", "Endothelial", "Fibroblast", "Macrophage", "Schwann", "B cell"))
+DimPlot(test, cols=colors, pt.size = 0.1, order = c("T cell", "RPE", "Melanocyte", "Endothelial", "Fibroblast", "Pericyte", "Macrophage", "Schwann", "B cell"))
 dev.off()
 
 #Dot plot of marker genes
 dot_genes <- c("BLK", "BANK1",	#B cell
+	"MYH11", "ACTA2",   #Pericyte
 	"SCN7A", "NRXN1", #Schwann
 	"SKAP1", "CD247", "PTPRC",   #T cell
     "CD163", "F13A1", #Macrophage
@@ -357,7 +358,13 @@ saveRDS(test, file = "Seurat/postHarmony/allRPE1-16_postUMAP")
 #################################################################################
 #Control vs AMD analyses
 
-condition <- rep(c("Control", "AMD"), times=c(22439, 16330)) 
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+library(cowplot)
+theme_set(theme_cowplot())
+
+condition <- rep(c("Control", "AMD"), times=c(22726, 16600))
 test$condition <- condition
 dev.new()
 DimPlot(test, reduction = "umap", pt.size = .1, group.by = 'condition', shuffle = TRUE, cols=c("#FE5F55", "#3083DC"))
@@ -370,41 +377,50 @@ cluster <- cluster %>%
     FindNeighbors(reduction = "harmony", dims = 1:30) %>% 
     FindClusters(resolution = 0.3) %>% 
     identity()
-dev.new()
-DimPlot(cluster, reduction = "umap", pt.size = .1, group.by = 'condition')
-dev.off()
 table(Idents(cluster))	#Cells per cluster
 
-library(ggplot2)
-library(cowplot)
-theme_set(theme_cowplot())
 Idents(cluster) <- "condition"
 avg.cluster <- log1p(AverageExpression(cluster, verbose = FALSE)$RNA)
 avg.cluster$gene <- rownames(avg.cluster)
 
+#Find differentially expressed genes
 diff <- FindMarkers(cluster, ident.1 = "AMD", ident.2 = "Control", logfc.threshold = 0.5, min.pct = 0.3)
 diff <- filter(diff, p_val_adj<0.05)
 diff
 nrow(diff)
 write.table(diff, "Seurat/diffTables/AMDvsControl_RPE.tsv", sep="\t", col.names=TRUE, row.names=TRUE, quote=FALSE)
 
+#Plot differentially expressed genes
 diff$mag <- abs(diff$avg_logFC)
 label <- head(diff[order(-diff$mag),],10)   #10 genes with largest fold change
 genes.to.label = rownames(label)
-avg.cluster$highlight <- ifelse(rownames(avg.cluster) %in% genes.to.label, "highlight", "normal")
-p1 <- ggplot(avg.cluster, aes(x = Control, y = AMD, color = highlight)) + geom_point() + 
-    scale_color_manual(values = c("highlight" = "red", "normal" = "gray")) + theme(legend.position = "none")
-p1 <- LabelPoints(plot = p1, points = genes.to.label, repel = TRUE)
+diff$gene <- rownames(diff)
+
+avg.cluster <- merge(avg.cluster, diff[, c("gene", "avg_logFC")], by = "gene", all.x = TRUE)
+avg.cluster$highlight <- ifelse(avg.cluster$gene %in% rownames(label), 
+                                ifelse(avg.cluster$avg_logFC > 0, "highlight_pos", "highlight_neg"),
+                                "normal")
+highlighted_data_pos <- subset(avg.cluster, highlight == "highlight_pos")
+highlighted_data_neg <- subset(avg.cluster, highlight == "highlight_neg")
+normal_data <- subset(avg.cluster, highlight == "normal")
+
+p1 <- ggplot() + 
+    geom_point(data = normal_data, aes(x = Control, y = AMD), color = "gray") +  
+    geom_point(data = highlighted_data_pos, aes(x = Control, y = AMD), color = "#F16058") +  
+    geom_point(data = highlighted_data_neg, aes(x = Control, y = AMD), color = "#437FC2") +  
+    geom_text_repel(data = avg.cluster[avg.cluster$gene %in% genes.to.label, ], 
+                    aes(x = Control, y = AMD, label = gene), color = "black", size = 7) +  
+    theme(legend.position = "none")
 dev.new()
-plot_grid(p1)
+plot(p1)
 dev.off()
 
 #Dot plot of AMD GWAS coding genes
-dot_genes <- c("VTN", "TSPAN10", "TIMP3", "SLC16A8", "SKIV2L", "PILRB", "NRTN", "MMP9", "FUT6", "CFI", "CFHR5", "CFHR4", "CFHR1", "CFH", "CFB", "C9", "C3", "ARMS2", "APOE")
+dot_genes <- c("VTN", "TSPAN10", "TIMP3", "SKIV2L", "SLC16A8", "PRRC2A", "PILRB", "NRTN", "MMP9", "LY6G6F", "FUT6", "EXOC3L2", "CFI", "CFHR5", "CFHR4", "CFHR1", "CFH", "CFB", "C9", "C3", "ARMS2", "APOE")
 dev.new(height = 3, width = 9)
 p1 <- DotPlot(object = test, features = dot_genes)
 plot(p1)
-dev.off()   
+dev.off()    
 
 
 #################################################################################
@@ -425,6 +441,7 @@ so$CellType <- identities
 
 #Dot plot of marker genes
 dot_genes <- c("BLK", "BANK1",  #B cell
+    "MYH11", "ACTA2",   #Pericyte
     "SCN7A", "NRXN1", #Schwann
     "SKAP1", "CD247", "PTPRC",   #T cell
     "CD163", "F13A1", #Macrophage
